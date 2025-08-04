@@ -49,10 +49,11 @@ Thumbs.db
 logs/
 app.log
 
-# Temporary files
-*.tmp
-*.temp
-.cache/
+# Streamlit
+.streamlit/secrets.toml
+
+# Model backups
+*_backup.pkl
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -60,15 +61,8 @@ app.log
 # pytest
 .pytest_cache/
 .coverage
-htmlcov/
 
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Streamlit
-.streamlit/secrets.toml
-
-# Model backups (keep main models)
-*_backup.pkl

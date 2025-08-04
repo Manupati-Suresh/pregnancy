@@ -1,6 +1,6 @@
 # 🚀 Deployment Guide - Diabetes Risk Predictor
 
-This guide provides step-by-step instructions for deploying the Diabetes Risk Predictor to various platforms.
+This guide provides comprehensive instructions for deploying the Diabetes Risk Predictor to various platforms.
 
 ## 📋 Pre-Deployment Checklist
 
@@ -8,41 +8,51 @@ Before deploying, ensure you've completed these steps:
 
 - [ ] Run health check: `python health_check.py`
 - [ ] Test locally: `streamlit run app.py`
-- [ ] Verify all dependencies in `requirements.txt`
-- [ ] Check that model files exist (`logistic_model.pkl`, `scaler.pkl`)
+- [ ] Verify all pages work correctly
+- [ ] Check model files exist (`logistic_model.pkl`, `scaler.pkl`)
 - [ ] Validate dataset (`diabetes.csv`)
-- [ ] Review configuration files
+- [ ] Review requirements.txt
+- [ ] Test on different screen sizes
 
 ## 🌐 Streamlit Cloud Deployment (Recommended)
 
-### Prerequisites
-- GitHub account with the repository
-- Streamlit Cloud account (free at [share.streamlit.io](https://share.streamlit.io))
+### Step 1: Prepare Repository
+```bash
+# Ensure your code is in a GitHub repository
+git add .
+git commit -m "Ready for deployment"
+git push origin main
+```
 
-### Steps
-1. **Fork/Clone Repository**
-   ```bash
-   git clone https://github.com/your-username/diabetes-risk-predictor.git
-   ```
+### Step 2: Deploy to Streamlit Cloud
+1. Visit [share.streamlit.io](https://share.streamlit.io)
+2. Sign in with your GitHub account
+3. Click "New app"
+4. Select your repository
+5. Choose branch: `main`
+6. Main file path: `app.py`
+7. Click "Deploy!"
 
-2. **Visit Streamlit Cloud**
-   - Go to [share.streamlit.io](https://share.streamlit.io)
-   - Sign in with GitHub
+### Step 3: Configure Advanced Settings (Optional)
+```toml
+# .streamlit/config.toml is already configured
+[theme]
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
 
-3. **Deploy App**
-   - Click "New app"
-   - Select your repository
-   - Choose branch: `main`
-   - Main file path: `app.py`
-   - Click "Deploy!"
+[server]
+headless = true
+enableCORS = true
+enableXsrfProtection = true
+```
 
-4. **Configuration**
-   - App will automatically use `.streamlit/config.toml`
-   - No additional configuration needed
-
-### Expected Deployment Time
-- Initial deployment: 2-5 minutes
-- Subsequent updates: 30-60 seconds
+### Step 4: Monitor Deployment
+- Check deployment logs for any errors
+- Test all functionality in the deployed app
+- Verify mobile responsiveness
+- Test all navigation pages
 
 ## 🐳 Docker Deployment
 
@@ -52,11 +62,19 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    software-properties-common \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy application files
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt
+
+# Copy application code
 COPY . .
 
 # Expose port
@@ -65,16 +83,16 @@ EXPOSE 8501
 # Health check
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
-# Run app
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Run the application
+ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 ```
 
 ### Build and Run
 ```bash
-# Build image
+# Build the image
 docker build -t diabetes-predictor .
 
-# Run container
+# Run the container
 docker run -p 8501:8501 diabetes-predictor
 
 # Run with environment variables
@@ -84,8 +102,9 @@ docker run -p 8501:8501 \
   diabetes-predictor
 ```
 
-### Docker Compose
+### Docker Compose (Optional)
 ```yaml
+# docker-compose.yml
 version: '3.8'
 services:
   diabetes-predictor:
@@ -100,285 +119,258 @@ services:
 
 ## ☁️ Heroku Deployment
 
-### Prerequisites
-- Heroku account
-- Heroku CLI installed
+### Step 1: Prepare Files
+Create `Procfile`:
+```
+web: sh setup.sh && streamlit run app.py
+```
 
-### Setup Files
-
-1. **Create Procfile**
-   ```
-   web: sh setup.sh && streamlit run app.py
-   ```
-
-2. **Create setup.sh**
-   ```bash
-   mkdir -p ~/.streamlit/
-   
-   echo "\
-   [general]\n\
-   email = \"your-email@domain.com\"\n\
-   " > ~/.streamlit/credentials.toml
-   
-   echo "\
-   [server]\n\
-   headless = true\n\
-   enableCORS=false\n\
-   port = $PORT\n\
-   " > ~/.streamlit/config.toml
-   ```
-
-3. **Make setup.sh executable**
-   ```bash
-   chmod +x setup.sh
-   ```
-
-### Deploy
+Create `setup.sh`:
 ```bash
-# Login to Heroku
+mkdir -p ~/.streamlit/
+
+echo "\
+[general]\n\
+email = \"your-email@domain.com\"\n\
+" > ~/.streamlit/credentials.toml
+
+echo "\
+[server]\n\
+headless = true\n\
+enableCORS=false\n\
+port = $PORT\n\
+" > ~/.streamlit/config.toml
+```
+
+### Step 2: Deploy
+```bash
+# Install Heroku CLI and login
 heroku login
 
-# Create app
-heroku create your-app-name
+# Create Heroku app
+heroku create your-diabetes-predictor
 
-# Set buildpack
-heroku buildpacks:set heroku/python
+# Set Python version (optional)
+echo "python-3.9.16" > runtime.txt
 
 # Deploy
+git add .
+git commit -m "Deploy to Heroku"
 git push heroku main
 
-# Open app
+# Open the app
 heroku open
 ```
 
 ## 🔧 AWS EC2 Deployment
 
-### Launch EC2 Instance
-1. Choose Amazon Linux 2 AMI
-2. Select t2.micro (free tier eligible)
-3. Configure security group (port 8501)
-4. Launch with key pair
+### Step 1: Launch EC2 Instance
+- Choose Ubuntu 20.04 LTS
+- Instance type: t2.micro (free tier) or t2.small
+- Configure security group to allow HTTP (port 80) and HTTPS (port 443)
+- Allow SSH (port 22) for your IP
 
-### Setup on EC2
+### Step 2: Setup Server
 ```bash
-# Connect to instance
-ssh -i your-key.pem ec2-user@your-instance-ip
+# Connect to your instance
+ssh -i your-key.pem ubuntu@your-ec2-ip
 
 # Update system
-sudo yum update -y
+sudo apt update && sudo apt upgrade -y
 
-# Install Python 3.9
-sudo amazon-linux-extras install python3.8
+# Install Python and pip
+sudo apt install python3 python3-pip -y
 
-# Install git
-sudo yum install git -y
+# Install nginx (optional, for reverse proxy)
+sudo apt install nginx -y
 
-# Clone repository
-git clone https://github.com/your-username/diabetes-risk-predictor.git
-cd diabetes-risk-predictor
+# Clone your repository
+git clone https://github.com/your-username/diabetes-predictor.git
+cd diabetes-predictor
 
 # Install dependencies
 pip3 install -r requirements.txt
 
-# Run app
+# Run the app
 streamlit run app.py --server.port 8501 --server.address 0.0.0.0
 ```
 
-### Setup as Service (Optional)
+### Step 3: Setup as Service (Optional)
 ```bash
-# Create service file
+# Create systemd service
 sudo nano /etc/systemd/system/diabetes-predictor.service
+```
 
-# Add content:
+```ini
 [Unit]
 Description=Diabetes Risk Predictor
 After=network.target
 
 [Service]
 Type=simple
-User=ec2-user
-WorkingDirectory=/home/ec2-user/diabetes-risk-predictor
-ExecStart=/usr/bin/python3 -m streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+User=ubuntu
+WorkingDirectory=/home/ubuntu/diabetes-predictor
+ExecStart=/usr/local/bin/streamlit run app.py --server.port 8501 --server.address 0.0.0.0
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
+```
 
+```bash
 # Enable and start service
 sudo systemctl enable diabetes-predictor
 sudo systemctl start diabetes-predictor
+sudo systemctl status diabetes-predictor
 ```
 
-## 🌊 DigitalOcean App Platform
+## 🌍 Google Cloud Platform (GCP)
 
-### Deploy via GitHub
-1. Connect GitHub account
-2. Select repository
-3. Configure build settings:
-   - Build command: `pip install -r requirements.txt`
-   - Run command: `streamlit run app.py --server.port $PORT --server.address 0.0.0.0`
-4. Set environment variables:
-   - `STREAMLIT_SERVER_HEADLESS=true`
-   - `STREAMLIT_BROWSER_GATHER_USAGE_STATS=false`
-
-## 🔍 Post-Deployment Verification
-
-### Health Checks
-1. **App Accessibility**
-   ```bash
-   curl -I https://your-app-url.com
-   ```
-
-2. **API Endpoints**
-   ```bash
-   curl https://your-app-url.com/_stcore/health
-   ```
-
-3. **Functionality Test**
-   - Navigate to app URL
-   - Test prediction with sample data
-   - Verify all pages load correctly
-   - Check visualizations render properly
-
-### Performance Monitoring
-- Monitor response times
-- Check memory usage
-- Verify model loading times
-- Test concurrent user handling
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Module Import Errors**
-   ```bash
-   # Check Python version
-   python --version
-   
-   # Reinstall requirements
-   pip install -r requirements.txt --force-reinstall
-   ```
-
-2. **Model File Not Found**
-   ```bash
-   # Retrain model
-   python train_model.py
-   
-   # Verify files exist
-   ls -la *.pkl
-   ```
-
-3. **Port Issues**
-   ```bash
-   # Check if port is in use
-   netstat -tulpn | grep 8501
-   
-   # Use different port
-   streamlit run app.py --server.port 8502
-   ```
-
-4. **Memory Issues**
-   ```bash
-   # Check memory usage
-   free -h
-   
-   # Optimize model loading
-   # Use @st.cache_data decorator
-   ```
-
-### Logs and Debugging
+### Using Cloud Run
 ```bash
-# View Streamlit logs
-streamlit run app.py --logger.level debug
+# Build and push to Container Registry
+gcloud builds submit --tag gcr.io/your-project-id/diabetes-predictor
 
-# Check system logs (Linux)
-journalctl -u diabetes-predictor -f
-
-# Docker logs
-docker logs container-name -f
+# Deploy to Cloud Run
+gcloud run deploy diabetes-predictor \
+  --image gcr.io/your-project-id/diabetes-predictor \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8501
 ```
+
+## 📊 Performance Optimization
+
+### For Production Deployment
+1. **Enable Caching**:
+   ```python
+   @st.cache_data
+   def load_model():
+       # Your model loading code
+   ```
+
+2. **Optimize Images**: Compress any images used in the app
+
+3. **Minimize Dependencies**: Remove unused packages from requirements.txt
+
+4. **Enable Compression**: Use gzip compression for static files
+
+5. **Monitor Performance**: Set up logging and monitoring
 
 ## 🔒 Security Considerations
 
-### Production Security
-- Use HTTPS in production
-- Set secure headers
-- Implement rate limiting
-- Monitor for unusual activity
-- Regular security updates
+### Production Security Checklist
+- [ ] Use HTTPS in production
+- [ ] Implement rate limiting
+- [ ] Validate all user inputs
+- [ ] Keep dependencies updated
+- [ ] Use environment variables for sensitive data
+- [ ] Enable security headers
+- [ ] Regular security audits
 
 ### Environment Variables
 ```bash
-# Set in production
+# For sensitive configuration
 export STREAMLIT_SERVER_HEADLESS=true
 export STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
-export STREAMLIT_SERVER_ENABLE_CORS=false
-export STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=true
+export STREAMLIT_THEME_PRIMARY_COLOR="#1f77b4"
 ```
 
-## 📊 Monitoring and Analytics
+## 📈 Monitoring and Maintenance
 
-### Application Monitoring
-- Set up uptime monitoring
-- Track response times
-- Monitor error rates
-- Log prediction requests
+### Health Monitoring
+```bash
+# Automated health checks
+python health_check.py
 
-### User Analytics
-- Track page views
-- Monitor user interactions
-- Analyze prediction patterns
-- Gather user feedback
+# Monitor logs
+tail -f app.log
 
-## 🔄 Continuous Deployment
+# Check system resources
+htop
+df -h
+```
 
-### GitHub Actions (Example)
-```yaml
-name: Deploy to Streamlit Cloud
+### Maintenance Tasks
+- Regular dependency updates
+- Model retraining (if needed)
+- Performance monitoring
+- Security patches
+- Backup important data
 
-on:
-  push:
-    branches: [ main ]
+## 🚨 Troubleshooting
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-    
-    - name: Run health check
-      run: |
-        python health_check.py
-    
-    - name: Deploy to Streamlit Cloud
-      # Streamlit Cloud auto-deploys on push to main
-      run: echo "Deployment triggered"
+### Common Issues
+
+**Port Already in Use**:
+```bash
+# Find process using port
+lsof -i :8501
+# Kill process
+kill -9 <PID>
+```
+
+**Memory Issues**:
+```bash
+# Check memory usage
+free -h
+# Restart application
+sudo systemctl restart diabetes-predictor
+```
+
+**Permission Errors**:
+```bash
+# Fix file permissions
+chmod +x setup.sh
+chown -R ubuntu:ubuntu /path/to/app
+```
+
+**Module Import Errors**:
+```bash
+# Reinstall dependencies
+pip install -r requirements.txt --force-reinstall
 ```
 
 ## 📞 Support
 
-### Deployment Issues
-- Check deployment logs
-- Verify all files are committed
-- Ensure requirements.txt is up to date
-- Test locally before deploying
-
 ### Getting Help
-- GitHub Issues: Report deployment problems
-- Streamlit Community: [discuss.streamlit.io](https://discuss.streamlit.io)
-- Documentation: [docs.streamlit.io](https://docs.streamlit.io)
+- Check application logs first
+- Run health check script
+- Review this deployment guide
+- Check Streamlit documentation
+- Open GitHub issue for bugs
+
+### Useful Commands
+```bash
+# Check app status
+curl -f http://localhost:8501/_stcore/health
+
+# View logs
+journalctl -u diabetes-predictor -f
+
+# Restart service
+sudo systemctl restart diabetes-predictor
+
+# Update application
+git pull origin main
+sudo systemctl restart diabetes-predictor
+```
+
+## 🎯 Post-Deployment Checklist
+
+After successful deployment:
+- [ ] Test all functionality
+- [ ] Verify mobile responsiveness
+- [ ] Check page load times
+- [ ] Test with different browsers
+- [ ] Verify analytics tracking (if implemented)
+- [ ] Set up monitoring alerts
+- [ ] Document the deployment process
+- [ ] Share the app URL with stakeholders
 
 ---
 
-**Happy Deploying! 🚀**
+**🎉 Congratulations!** Your Diabetes Risk Predictor is now deployed and ready to help users assess their diabetes risk!
 
-For additional support, please open an issue on GitHub or contact the development team.
+For any deployment issues, refer to the troubleshooting section or open an issue in the GitHub repository.
